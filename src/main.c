@@ -5,10 +5,9 @@
 #include "wokwi-api.h"
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
-//
 // Estado do chip mantido globalmente
-//
 static pin_t ain[4];
 static uint16_t configRegister = 0x8583;
 static int selectedChannel = 0;
@@ -16,95 +15,55 @@ static uint8_t pointerRegister = 0;
 
 // Leitura interna do conversor A/D simulada
 static uint16_t readAdcValue() {
-  printf("ADS1115: readAdcValue() – canal atual = %d\n", selectedChannel);
   float voltage = pin_adc_read(ain[selectedChannel]);
-  printf("ADS1115: tensão lida no pino = %.4f V\n", voltage);
-  int16_t adc = (int16_t)(voltage * 32767);
-  printf("ADS1115: convertido para valor ADC = %d\n", adc);
-  return (uint16_t)adc;
+  return (uint16_t)((int16_t)(voltage * 32767));
 }
 
-//
-// Função chamada pelo Wokwi para inicializar o chip
-//
+// Inicialização do chip
 __attribute__((used, visibility("default")))
 void chip_init(void) {
-  printf("ADS1115: chip_init() iniciado\n");
-
   ain[0] = pin_init("AIN0", ANALOG);
   ain[1] = pin_init("AIN1", ANALOG);
   ain[2] = pin_init("AIN2", ANALOG);
   ain[3] = pin_init("AIN3", ANALOG);
-
-  selectedChannel = 0;
   configRegister = 0x8583;
+  selectedChannel = 0;
   pointerRegister = 0;
-
-  printf("ADS1115: chip_init() concluído\n");
 }
 
-//
-// Escrita via I2C — chamada pelo simulador quando MCU escreve dados
-//
+// Configuração I²C – estabelece a conexão no endereço do ADS1115
 __attribute__((used, visibility("default")))
-void chipI2CWrite(void *ctx, uint8_t reg, uint8_t value) {
-  (void)ctx; // não usado no modelo atual
+bool chip_i2c_connect(void *ctx, uint32_t i2c_index, uint32_t address) {
+  return (address == 0x48); // end. padrão do ADS1115
+}
 
-  printf("ADS1115: chipI2CWrite() - reg=0x%02X, val=0x%02X\n", reg, value);
-
-  if (reg == 0x00) {
-    pointerRegister = value;
-    printf("ADS1115: ponteiro de registrador atualizado para 0x%02X\n", pointerRegister);
-  } else if (reg == 0x01) {
-    // Montagem do registrador de configuração em 2 etapas
-    static uint8_t msb = 0;
-    msb = value;
-    configRegister = (msb << 8) | (configRegister & 0x00FF);
-  } else if (reg == 0x02) {
-    configRegister = (configRegister & 0xFF00) | value;
-    int mux = (configRegister >> 12) & 0x07;
-
-    switch (mux) {
-      case 0b100: selectedChannel = 0; break;
-      case 0b101: selectedChannel = 1; break;
-      case 0b110: selectedChannel = 2; break;
-      case 0b111: selectedChannel = 3; break;
-      default:
-        selectedChannel = 0;
-        printf("ADS1115: MUX inválido, voltando para canal 0\n");
-        break;
-    }
-
-    printf("ADS1115: novo configRegister = 0x%04X, canal = %d\n", configRegister, selectedChannel);
-  } else {
-    printf("ADS1115: escrita ignorada (reg=0x%02X)\n", reg);
+// Escrita de bytes via I²C – primeiro seta ponteiro, depois configura
+__attribute__((used, visibility("default")))
+bool chip_i2c_write(void *ctx, uint32_t i2c_index, uint8_t data) {
+  pointerRegister = (pointerRegister << 8) | data;
+  if ((pointerRegister & 0xFF00) == 0x0100) {
+    configRegister = pointerRegister;
+    uint8_t mux = (configRegister >> 12) & 0x07;
+    selectedChannel = (mux >= 4 && mux <= 7) ? (mux - 4) : 0;
   }
+  return true; // ACK
 }
 
-//
-// Leitura via I2C — chamada pelo simulador quando MCU lê do registrador
-//
+// Leitura de bytes via I²C – retorna primeiro MSB depois LSB
 __attribute__((used, visibility("default")))
-uint8_t chipI2CRead(void *ctx, uint8_t reg) {
-  (void)ctx;
-
-  printf("ADS1115: chipI2CRead() - reg=0x%02X (ponteiro=0x%02X)\n", reg, pointerRegister);
-
-  if (pointerRegister == 0x00) {
-    // Registrador de conversão
+uint8_t chip_i2c_read(void *ctx, uint32_t i2c_index) {
+  if ((pointerRegister & 0xFF00) == 0x0000) {
     uint16_t val = readAdcValue();
     static bool msb_next = true;
-    uint8_t result;
-
-    if (msb_next) {
-      result = (val >> 8) & 0xFF;
-    } else {
-      result = val & 0xFF;
-    }
-
+    uint8_t out = msb_next ? (val >> 8) : (val & 0xFF);
     msb_next = !msb_next;
-    return result;
+    return out;
   }
+  return 0;
+}
 
-  return 0x00;
+// Desconexão opcional – nada precisa ser feito
+__attribute__((used, visibility("default")))
+void chip_i2c_disconnect(void *ctx, uint32_t i2c_index) {
+  // sem uso no momento
 }
