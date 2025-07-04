@@ -19,6 +19,7 @@ jobs:
 
       - name: Copy chip.json
         run: |
+          rm -rf dist
           mkdir -p dist
           cp chip.json dist/chip.json
 
