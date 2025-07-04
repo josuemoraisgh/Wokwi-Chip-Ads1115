@@ -14,12 +14,6 @@
     "AIN3"
   ],
   "controls": [
-    {
-      "id": "ppm",
-      "label": "PPM",
-      "type": "slider",
-      "min": 10,
-      "max": 1000
-    }
+
   ]
 }
