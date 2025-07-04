@@ -2,7 +2,7 @@
 // Wokwi Custom ADS1115 Chip with I²C handlers
 // SPDX-License-Identifier: MIT
 
-#include "../wokwi-api.h"
+#include "wokwi-api.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
