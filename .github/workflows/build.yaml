@@ -16,6 +16,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Clean previous WASM
+        run: rm -f *.wasm
+
       - name: Debug before build
         run: |
           echo "== Before build =="
@@ -34,10 +37,9 @@ jobs:
       - name: Prepare dist directory
         run: |
           mkdir -p dist
-          # Ajusta conforme o nome real do .wasm gerado pelo action (normalmente main.wasm)
-          mv *.wasm dist/${{ github.event.repository.name }}.chip.wasm
+          mv *ads1115*.wasm dist/${{ github.event.repository.name }}.chip.wasm
           cp chip.json dist/${{ github.event.repository.name }}.chip.json
-          echo "::debug::Files in dist:"
+          echo "::debug::Files in dist/"
           ls -R dist
 
       - name: Commit dist files
