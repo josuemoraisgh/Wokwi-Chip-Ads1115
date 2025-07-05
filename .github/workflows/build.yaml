@@ -1,11 +1,25 @@
+name: 🛠️ Build & Publish Custom Chip
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'chip.json'
+      - '.github/workflows/**'
+      - 'wokwi.toml'
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      - name: Debug files
-        run: ls -R .
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Debug before build
+        run: |
+          echo "== Before build =="
+          ls -R .
 
       - name: Build WASM
         uses: wokwi/wokwi-chip-clang-action@main
@@ -13,17 +27,22 @@ jobs:
           sources: src/main.c
 
       - name: Debug after build
-        run: ls -R .
+        run: |
+          echo "== After build =="
+          ls -R .
 
-      - name: Prepare dist
+      - name: Prepare dist directory
         run: |
           mkdir -p dist
+          # Ajusta conforme o nome real do .wasm gerado pelo action (normalmente main.wasm)
           mv *.wasm dist/${{ github.event.repository.name }}.chip.wasm
           cp chip.json dist/${{ github.event.repository.name }}.chip.json
+          echo "::debug::Files in dist:"
+          ls -R dist
 
       - name: Commit dist files
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           branch: ${{ github.ref_name }}
           file_pattern: 'dist/*'
-          commit_message: 'Add compiled chip wasm/json'
+          commit_message: '📦 Add compiled WASM and chip.json to dist/'
