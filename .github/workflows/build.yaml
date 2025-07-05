@@ -1,54 +1,25 @@
-name: Build ADS1115 Chip
-
+name: Build Chip
 on:
   push:
-  workflow_dispatch:
-
+    tags:
+      - 'v*'
 jobs:
   build:
-    name: Build
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: Build chip
-        uses: wokwi/wokwi-chip-clang-action@main
-        with:
-          sources: "src/main.c"
-
-      - name: Copy chip.json
-        run: |
-          sudo mkdir -p dist
-          sudo cp chip.json dist
-
-      - name: 'Upload Artifacts'
-        uses: actions/upload-artifact@v4
-        with:
-          name: chip
-          path: |
-            dist/chip.json
-            dist/chip.wasm
-          retention-days: 7
-
-  release:
-    name: Release
-    needs: build
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
-      - name: Download compiled chip
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v3
+      - name: Build WASM
+        uses: wokwi/wokwi-chip-clang-action@main
         with:
-          name: chip
-          path: chip
-
-      - name: Create a zip archive
-        run: cd chip && zip -9 ../chip.zip chip.*
-
-      - name: Upload release
-        uses: ncipollo/release-action@v1
+          sources: src/main.c
+      - name: Prepare dist
+        run: |
+          mkdir -p dist
+          mv *.wasm dist/${{ github.event.repository.name }}.chip.wasm
+          cp chip.json dist/${{ github.event.repository.name }}.chip.json
+      - name: Push dist
+        uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          artifacts: chip.zip
-          token: ${{ secrets.GITHUB_TOKEN }}
-          generateReleaseNotes: true
+          file_pattern: dist/*
+          commit_message: 'Add dist files'
+          branch: ${{ github.ref_name }}
