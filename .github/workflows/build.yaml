@@ -37,10 +37,8 @@ jobs:
       - name: Prepare dist directory
         run: |
           mkdir -p dist
-          mv *ads1115*.wasm dist/${{ github.event.repository.name }}.chip.wasm
-          cp chip.json dist/${{ github.event.repository.name }}.chip.json
-          echo "::debug::Files in dist/"
-          ls -R dist
+          mv chip.wasm dist/ads1115.chip.wasm
+          cp chip.json dist/ads1115.chip.json
 
       - name: Commit dist files
         uses: stefanzweifel/git-auto-commit-action@v4
