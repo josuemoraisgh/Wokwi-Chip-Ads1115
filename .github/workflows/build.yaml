@@ -1,25 +1,32 @@
 name: Build Chip
+
 on:
   push:
-    tags:
-      - 'v*'
+    paths:
+      - 'src/**'
+      - 'chip.json'
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
-      - name: Build WASM
+
+      - name: Build WASM with Wokwi Action
         uses: wokwi/wokwi-chip-clang-action@main
         with:
           sources: src/main.c
-      - name: Prepare dist
+
+      - name: Prepare dist folder
         run: |
           mkdir -p dist
           mv *.wasm dist/${{ github.event.repository.name }}.chip.wasm
           cp chip.json dist/${{ github.event.repository.name }}.chip.json
-      - name: Push dist
+
+      - name: Commit dist files
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          file_pattern: dist/*
-          commit_message: 'Add dist files'
           branch: ${{ github.ref_name }}
+          file_pattern: 'dist/*'
+          commit_message: 'Add compiled chip wasm/json'
