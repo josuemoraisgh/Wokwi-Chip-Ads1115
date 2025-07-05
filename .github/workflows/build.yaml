@@ -34,10 +34,9 @@ jobs:
           echo "== After build =="
           ls -R .
 
-      - name: Prepare dist directory
+      - name: Rename .wasm and .json for distribution
         run: |
-          mkdir -p dist
-          mv chip.wasm dist/ads1115.chip.wasm
+          mv dist/chip.wasm dist/ads1115.chip.wasm
           cp chip.json dist/ads1115.chip.json
 
       - name: Commit dist files
