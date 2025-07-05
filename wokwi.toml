@@ -1,3 +1,6 @@
+[wokwi]
+version = 1
+
 [[chip]]
 name = "ads1115"
-binary = "chips/ads1115/dist/ads1115.chip.wasm"
+binary = "dist/ads1115.chip.wasm"
