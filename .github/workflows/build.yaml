@@ -37,12 +37,12 @@ jobs:
       - name: Check dist content and permissions
         run: ls -l dist/
 
-      - name: Workaround using copy instead of move
+      - name: Fix permissions and rename output files
         run: |
-          chmod 644 dist/chip.wasm
-          cp dist/chip.wasm dist/ads1115.chip.wasm
-          rm dist/chip.wasm
-          cp chip.json dist/ads1115.chip.json
+          CHIP_ID=$(jq -r .id chip.json)
+          sudo chown runner:runner dist/chip.wasm
+          cp dist/chip.wasm "dist/${CHIP_ID}.chip.wasm"
+          cp chip.json "dist/${CHIP_ID}.chip.json"
 
       - name: Commit dist files
         uses: stefanzweifel/git-auto-commit-action@v4
