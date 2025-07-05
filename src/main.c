@@ -1,69 +1,68 @@
-// chips/ads1115.chip.c
-// Wokwi Custom ADS1115 Chip with I²C handlers
-// SPDX-License-Identifier: MIT
-
 #include "wokwi-api.h"
 #include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
-// Estado do chip mantido globalmente
-static pin_t ain[4];
-static uint16_t configRegister = 0x8583;
-static int selectedChannel = 0;
-static uint8_t pointerRegister = 0;
+#define I2C_ADDRESS 0x48
 
-// Leitura interna do conversor A/D simulada
-static uint16_t readAdcValue() {
-  float voltage = pin_adc_read(ain[selectedChannel]);
-  return (uint16_t)((int16_t)(voltage * 32767));
+typedef struct {
+  uint16_t conversion_register; // Holds the ADC conversion result
+  uint8_t config_register;      // Configuration register
+  i2c_dev_t i2c_dev;            // I2C device
+  i2c_config_t i2c_config;      // I2C configuration
+} chip_state_t;
+
+// Function prototypes
+void chip_init();
+bool on_i2c_connect(void *user_data, uint32_t address, bool read);
+uint8_t on_i2c_read(void *user_data);
+bool on_i2c_write(void *user_data, uint8_t data);
+void simulate_adc_conversion(chip_state_t *chip);
+
+// Initializes the chip
+void chip_init() {
+  chip_state_t *chip = malloc(sizeof(chip_state_t));
+  memset(chip, 0, sizeof(chip_state_t)); // Initialize all values to 0
+
+  // Set up the I2C configuration
+  chip->i2c_config.address = I2C_ADDRESS;
+  chip->i2c_config.scl = pin_init("SCL", INPUT);
+  chip->i2c_config.sda = pin_init("SDA", INPUT);
+  chip->i2c_config.connect = on_i2c_connect;
+  chip->i2c_config.read = on_i2c_read;
+  chip->i2c_config.write = on_i2c_write;
+  chip->i2c_config.user_data = chip;
+  chip->i2c_dev = i2c_init(&(chip->i2c_config));
+
+  // Initialize the ADC registers
+  chip->conversion_register = 0; // Default conversion value
+  chip->config_register = 0;     // Default config
 }
 
-// Inicialização do chip
-__attribute__((used, visibility("default")))
-void chip_init(void) {
-  ain[0] = pin_init("AIN0", ANALOG);
-  ain[1] = pin_init("AIN1", ANALOG);
-  ain[2] = pin_init("AIN2", ANALOG);
-  ain[3] = pin_init("AIN3", ANALOG);
-  configRegister = 0x8583;
-  selectedChannel = 0;
-  pointerRegister = 0;
+// Handle I2C connect event
+bool on_i2c_connect(void *user_data, uint32_t address, bool read) {
+  chip_state_t *chip = user_data;
+  return address == I2C_ADDRESS;
 }
 
-// Configuração I²C – estabelece a conexão no endereço do ADS1115
-__attribute__((used, visibility("default")))
-bool chip_i2c_connect(void *ctx, uint32_t i2c_index, uint32_t address) {
-  return (address == 0x48); // end. padrão do ADS1115
+// Handle I2C read event
+uint8_t on_i2c_read(void *user_data) {
+  chip_state_t *chip = user_data;
+  simulate_adc_conversion(chip); // Simulate ADC conversion
+  return chip->conversion_register & 0xFF; // Return the lower byte of the conversion register
 }
 
-// Escrita de bytes via I²C – primeiro seta ponteiro, depois configura
-__attribute__((used, visibility("default")))
-bool chip_i2c_write(void *ctx, uint32_t i2c_index, uint8_t data) {
-  pointerRegister = (pointerRegister << 8) | data;
-  if ((pointerRegister & 0xFF00) == 0x0100) {
-    configRegister = pointerRegister;
-    uint8_t mux = (configRegister >> 12) & 0x07;
-    selectedChannel = (mux >= 4 && mux <= 7) ? (mux - 4) : 0;
-  }
-  return true; // ACK
+// Handle I2C write event
+bool on_i2c_write(void *user_data, uint8_t data) {
+  chip_state_t *chip = user_data;
+  chip->config_register = data; // Store the configuration
+  return true; // Acknowledge the write
 }
 
-// Leitura de bytes via I²C – retorna primeiro MSB depois LSB
-__attribute__((used, visibility("default")))
-uint8_t chip_i2c_read(void *ctx, uint32_t i2c_index) {
-  if ((pointerRegister & 0xFF00) == 0x0000) {
-    uint16_t val = readAdcValue();
-    static bool msb_next = true;
-    uint8_t out = msb_next ? (val >> 8) : (val & 0xFF);
-    msb_next = !msb_next;
-    return out;
-  }
-  return 0;
-}
-
-// Desconexão opcional – nada precisa ser feito
-__attribute__((used, visibility("default")))
-void chip_i2c_disconnect(void *ctx, uint32_t i2c_index) {
-  // sem uso no momento
+// Simulates an ADC conversion
+void simulate_adc_conversion(chip_state_t *chip) {
+  // Simple ADC conversion simulation
+  // This should be adapted to simulate analog-to-digital conversion based on the config register
+  // For now, let's just assign a fixed value
+  chip->conversion_register = 1234; // Example fixed ADC value
 }
