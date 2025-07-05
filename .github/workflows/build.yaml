@@ -40,7 +40,7 @@ jobs:
       - name: Fix permissions and rename output files
         run: |
           CHIP_ID=$(jq -r .name chip.json)
-          sudo chown runner:runner dist/chip.wasm
+          sudo chown -R runner:runner dist
           cp dist/chip.wasm "dist/${CHIP_ID}.chip.wasm"
           cp chip.json "dist/${CHIP_ID}.chip.json"
 
