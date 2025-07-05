@@ -33,10 +33,15 @@ jobs:
         run: |
           echo "== After build =="
           ls -R .
+          
+      - name: Check dist content and permissions
+        run: ls -l dist/
 
-      - name: Rename .wasm and .json for distribution
+      - name: Workaround using copy instead of move
         run: |
-          mv dist/chip.wasm dist/ads1115.chip.wasm
+          chmod 644 dist/chip.wasm
+          cp dist/chip.wasm dist/ads1115.chip.wasm
+          rm dist/chip.wasm
           cp chip.json dist/ads1115.chip.json
 
       - name: Commit dist files
