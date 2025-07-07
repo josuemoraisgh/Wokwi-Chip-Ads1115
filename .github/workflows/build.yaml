@@ -1,52 +1,52 @@
-name: 🛠️ Build & Publish Custom Chip
+name: Build Chip
 
 on:
   push:
-    paths:
-      - 'src/**'
-      - 'chip.json'
-      - '.github/workflows/**'
-      - 'wokwi.toml'
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    name: Build
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout
+      - name: Check out repository
         uses: actions/checkout@v3
-
-      - name: Clean previous WASM
-        run: rm -f *.wasm
-
-      - name: Debug before build
-        run: |
-          echo "== Before build =="
-          ls -R .
-
-      - name: Build WASM
+      - name: Build chip
         uses: wokwi/wokwi-chip-clang-action@main
         with:
-          sources: src/main.c
-
-      - name: Debug after build
-        run: |
-          echo "== After build =="
-          ls -R .
-          
-      - name: Check dist content and permissions
-        run: ls -l dist/
-
-      - name: Fix permissions and rename output files
-        run: |
-          CHIP_ID=$(jq -r .name chip.json)
-          sudo chown -R runner:runner dist
-          cp dist/chip.wasm "dist/${CHIP_ID}.chip.wasm"
-          cp chip.json "dist/${CHIP_ID}.chip.json"
-
-      - name: Commit dist files
-        uses: stefanzweifel/git-auto-commit-action@v4
+          sources: "src/main.c"
+      - name: Copy chip.json
+        run: sudo cp chip.json dist
+      - name: Copy chip.svg
+        run: sudo cp chip.svg dist
+      - name: 'Upload Artifacts'
+        uses: actions/upload-artifact@v4
         with:
-          branch: ${{ github.ref_name }}
-          file_pattern: 'dist/*'
-          commit_message: '📦 Add compiled WASM and chip.json to dist/'
+          name: chip
+          path: |
+            dist/chip.json
+            dist/chip.svg
+            dist/chip.wasm
+
+  # The release job only runs when you push a tag starting with "v", e.g. v1.0.0 
+  release:
+    name: Release
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download compiled chip
+        uses: actions/download-artifact@v4
+        with:
+          name: chip
+          path: chip
+      - name: Create a zip archive
+        run: cd chip && zip -9 ../chip.zip chip.*
+        env:
+          ZIP_VERSION: ${{ github.ref_name }}
+      - name: Upload release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: chip.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+          generateReleaseNotes: true
