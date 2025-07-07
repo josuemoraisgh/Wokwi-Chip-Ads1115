@@ -26,7 +26,7 @@ static int16_t clamp(int32_t v) {
 
 void chip_init() {
   chip_t *chip = calloc(1, sizeof(chip_t));
-  printf("[chip-ads1115] chip_init chamada, chip=%p\n", chip);
+  //printf("[chip-ads1115] chip_init chamada, chip=%p\n", chip);
 
   for (int i = 0; i < 4; i++) {
     char name[6];
