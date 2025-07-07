@@ -1,6 +1,7 @@
 #include "wokwi-api.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 typedef struct {
   pin_t ain[4];
@@ -67,8 +68,7 @@ static bool on_i2c_connect(void *user_data, uint32_t address, bool read) {
 
 static bool on_i2c_write(void *user_data, uint8_t data) {
   chip_t *chip = user_data;
-  //printf("[chip-ads1115] on_i2c_write: data=0x%02x, expecting_pointer=%d, pointer_reg=0x%02x, config_byte_count=%d\n",
-         data, chip->expecting_pointer, chip->pointer_reg, chip->config_byte_count);
+  //printf("[chip-ads1115] on_i2c_write: data=0x%02x, expecting_pointer=%d, pointer_reg=0x%02x, config_byte_count=%d\n", data, chip->expecting_pointer, chip->pointer_reg, chip->config_byte_count);
 
   if (chip->expecting_pointer) {
     chip->pointer_reg = data;
@@ -84,8 +84,7 @@ static bool on_i2c_write(void *user_data, uint8_t data) {
     if (chip->pointer_reg == 0x01) {
       // Para config_reg, aceita até dois bytes, sobrescrevendo MSB e LSB
       chip->config_bytes[chip->config_byte_count++] = data;
-      //printf("[chip-ads1115]   Armazenando config_bytes[%d]=0x%02x\n",
-             chip->config_byte_count-1, data);
+      //printf("[chip-ads1115]   Armazenando config_bytes[%d]=0x%02x\n", chip->config_byte_count-1, data);
 
       // Sempre que receber um byte, atualiza parcialmente o config_reg
       if (chip->config_byte_count == 1) {
@@ -125,32 +124,28 @@ static uint8_t on_i2c_read(void *user_data) {
           vin_n = pin_adc_read(chip->ain[1]);
           vdiff = vin_p - vin_n;
           code = clamp((int32_t)((vdiff / fsr) * 32767.0f));
-          //printf("[chip-ads1115]     MUX=0 Diferencial: AIN0=%.3fV, AIN1=%.3fV, vdiff=%.3fV, code=%d\n",
-                 vin_p, vin_n, vdiff, code);
+          //printf("[chip-ads1115]     MUX=0 Diferencial: AIN0=%.3fV, AIN1=%.3fV, vdiff=%.3fV, code=%d\n", vin_p, vin_n, vdiff, code);
           break;
         case 1: // AIN0-AIN3 (diferencial)
           vin_p = pin_adc_read(chip->ain[0]);
           vin_n = pin_adc_read(chip->ain[3]);
           vdiff = vin_p - vin_n;
           code = clamp((int32_t)((vdiff / fsr) * 32767.0f));
-          //printf("[chip-ads1115]     MUX=1 Diferencial: AIN0=%.3fV, AIN3=%.3fV, vdiff=%.3fV, code=%d\n",
-                 vin_p, vin_n, vdiff, code);
+          //printf("[chip-ads1115]     MUX=1 Diferencial: AIN0=%.3fV, AIN3=%.3fV, vdiff=%.3fV, code=%d\n", vin_p, vin_n, vdiff, code);
           break;
         case 2: // AIN1-AIN3 (diferencial)
           vin_p = pin_adc_read(chip->ain[1]);
           vin_n = pin_adc_read(chip->ain[3]);
           vdiff = vin_p - vin_n;
           code = clamp((int32_t)((vdiff / fsr) * 32767.0f));
-          //printf("[chip-ads1115]     MUX=2 Diferencial: AIN1=%.3fV, AIN3=%.3fV, vdiff=%.3fV, code=%d\n",
-                 vin_p, vin_n, vdiff, code);
+          //printf("[chip-ads1115]     MUX=2 Diferencial: AIN1=%.3fV, AIN3=%.3fV, vdiff=%.3fV, code=%d\n", vin_p, vin_n, vdiff, code);
           break;
         case 3: // AIN2-AIN3 (diferencial)
           vin_p = pin_adc_read(chip->ain[2]);
           vin_n = pin_adc_read(chip->ain[3]);
           vdiff = vin_p - vin_n;
           code = clamp((int32_t)((vdiff / fsr) * 32767.0f));
-          //printf("[chip-ads1115]     MUX=3 Diferencial: AIN2=%.3fV, AIN3=%.3fV, vdiff=%.3fV, code=%d\n",
-                 vin_p, vin_n, vdiff, code);
+          //printf("[chip-ads1115]     MUX=3 Diferencial: AIN2=%.3fV, AIN3=%.3fV, vdiff=%.3fV, code=%d\n", vin_p, vin_n, vdiff, code);
           break;
         case 4: // AIN0-GND (single-ended)
           v = pin_adc_read(chip->ain[0]);
