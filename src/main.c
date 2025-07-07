@@ -168,7 +168,7 @@ static uint8_t on_i2c_read(void *user_data) {
           //printf("[chip-ads1115]     MUX=7 Single-ended: AIN3=%.3fV, code=%d\n", v, code);
           break;
         default:
-          //printf("[chip-ads1115]     MUX=%d não implementado\n", mux);
+          printf("[chip-ads1115]     MUX=%d não implementado\n", mux);
       }
       chip->conversion_reg = (uint16_t)code;
     }
